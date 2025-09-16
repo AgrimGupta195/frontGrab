@@ -1,6 +1,6 @@
-# WebCloner 🚀
+# frontGrab 🚀
 
-**WebCloner** is a Node.js-based tool that allows you to **clone a website’s frontend**, extract its HTML, CSS, JS, and assets, and download it as a **ZIP file**. The cloned code is automatically **enhanced using Generative AI (GenAI)** to make it clean, structured, and maintainable.
+**frontGrab** is a Node.js-based tool that allows you to **clone a website’s frontend**, extract its HTML, CSS, JS, and assets, and download it as a **ZIP file**. The cloned code is automatically **enhanced using Generative AI (GenAI)** to make it clean, structured, and maintainable.
 
 ---
 
