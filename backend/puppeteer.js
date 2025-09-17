@@ -1,15 +1,19 @@
-import puppeteer from "puppeteer";
+import puppeteer from "puppeteer-extra";
+import StealthPlugin from "puppeteer-extra-plugin-stealth";
 import fs from "fs-extra";
 import path from "path";
 import { URL } from "url";
 import chalk from "chalk";
 import * as cheerio from "cheerio";
+import { generateHtmlClone } from "./agents/gemini.js";
+
+puppeteer.use(StealthPlugin());
 
 export default class ContentExtractor {
   /**
-   * Extracts and saves the frontend content of a given site
-   * @param {string} url - Website URL to scrape
-   * @param {string} outputDir - Local directory where content will be saved
+   * Extracts and enhances frontend content of a website
+   * @param {string} url - Website URL
+   * @param {string} outputDir - Local folder to save files
    */
   static async extractFrontendContent(url, outputDir) {
     let browser = null;
@@ -26,41 +30,41 @@ export default class ContentExtractor {
       const page = await browser.newPage();
       await page.setViewport({ width: 1920, height: 1080 });
 
-      // Capture responses for assets (css, js, images, etc.)
+      // Set user-agent & headers to bypass Cloudflare
+      await page.setUserAgent(
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"
+      );
+      await page.setExtraHTTPHeaders({ "Accept-Language": "en-US,en;q=0.9" });
+
+      // Capture responses for assets
       const assetResponses = new Map();
       page.on("response", async (res) => {
         const reqUrl = res.url();
         if (res.status() >= 200 && res.status() < 400) {
           try {
             const buffer = await res.buffer();
-            if (buffer.length > 0) {
-              assetResponses.set(reqUrl, { buffer });
-            }
-          } catch {
-            // ignore failed asset fetch
-          }
+            if (buffer.length > 0) assetResponses.set(reqUrl, { buffer });
+          } catch {}
         }
       });
 
-      // Navigate to page and auto-scroll for lazy-loaded content
-      await page.goto(url, { waitUntil: "networkidle0", timeout: 120000 });
+      // Navigate and auto-scroll for lazy-loaded content
+      await page.goto(url, { waitUntil: "networkidle2", timeout: 120000 });
       await this.autoScroll(page);
 
       let html = await page.content();
       const baseUrl = new URL(url);
 
-      // Save all captured assets
+      // Save all assets locally
       for (const [assetUrl, { buffer }] of assetResponses.entries()) {
         try {
           const urlObj = new URL(assetUrl);
           if (urlObj.hostname !== baseUrl.hostname) continue;
-
           if (urlObj.pathname === "/") continue;
 
           const assetPath = urlObj.pathname.startsWith("/")
             ? urlObj.pathname.substring(1)
             : urlObj.pathname;
-
           const localPath = path.join(outputDir, assetPath);
           await fs.ensureDir(path.dirname(localPath));
           await fs.writeFile(localPath, buffer);
@@ -71,53 +75,39 @@ export default class ContentExtractor {
         }
       }
 
-      // Load into Cheerio for rewriting paths
+      // Load HTML into Cheerio
       const $ = cheerio.load(html);
-
-      const selectors = [
-        { selector: "link[href]", attr: "href" },
-        { selector: "script[src]", attr: "src" },
-        { selector: "img[src]", attr: "src" },
-        { selector: "img[srcset]", attr: "srcset" },
-        { selector: "source[src]", attr: "src" },
-        { selector: "source[srcset]", attr: "srcset" },
-        { selector: "video[src]", attr: "src" },
-        { selector: "video[poster]", attr: "poster" },
-      ];
-
-      selectors.forEach(({ selector, attr }) => {
-        $(selector).each((_, el) => {
-          const element = $(el);
-          const originalValue = element.attr(attr);
-          if (!originalValue) return;
-
-          if (attr === "srcset") {
-            const newSrcset = originalValue
-              .split(",")
-              .map((part) => {
-                const [url, descriptor] = part.trim().split(/\s+/);
-                const newUrl = this.getRelativePath(url, baseUrl);
-                return `${newUrl} ${descriptor || ""}`.trim();
-              })
-              .join(", ");
-            element.attr(attr, newSrcset);
-          } else {
-            const newUrl = this.getRelativePath(originalValue, baseUrl);
-            element.attr(attr, newUrl);
-          }
-        });
-      });
-
-      // Remove Next.js hydration data (if exists)
       $('script[id="__NEXT_DATA__"]').remove();
       $('script[src*="_next/static/"]').remove();
 
-      // Save final HTML
-      const finalHtml = $.html();
-      const htmlPath = path.join(outputDir, "index.html");
-      await fs.writeFile(htmlPath, finalHtml, "utf-8");
+      // Extract inline CSS & JS for GenAI
+      let cssContent = "";
+      $("style").each((_, el) => {
+        cssContent += $(el).html() + "\n";
+        $(el).remove();
+      });
 
-      console.log(chalk.green("✅ Site cloned successfully."));
+      let jsContent = "";
+      $("script").each((_, el) => {
+        jsContent += $(el).html() + "\n";
+        $(el).remove();
+      });
+
+      console.log(chalk.blue("🤖 Sending content to GenAI for enhancement..."));
+      // const enhanced = await generateHtmlClone($.html(), cssContent, jsContent);
+      // console.log(chalk.blue("🛠️ Enhancements received from GenAI."));
+      // console.log(enhanced);
+      // await fs.writeFile(path.join(outputDir, "index.html"), enhanced.html, "utf-8");
+      // await fs.writeFile(path.join(outputDir, "style.css"), enhanced.css,"utf-8");
+      // await fs.writeFile(path.join(outputDir, "script.js"),enhanced.js, "utf-8");
+
+      
+      // // // Save enhanced files
+      await fs.writeFile(path.join(outputDir, "index.html"),$.html(), "utf-8");
+      await fs.writeFile(path.join(outputDir, "style.css"), cssContent,"utf-8");
+      await fs.writeFile(path.join(outputDir, "script.js"),jsContent, "utf-8");
+
+      console.log(chalk.green("✅ Site cloned and enhanced successfully."));
       return { outputDir };
     } catch (error) {
       console.error(chalk.red(`❌ Error during extraction: ${error.message}`));
@@ -131,7 +121,6 @@ export default class ContentExtractor {
     try {
       const fullAssetUrl = new URL(assetUrl, baseUrl.href);
       if (fullAssetUrl.hostname !== baseUrl.hostname) return assetUrl;
-
       return fullAssetUrl.pathname.startsWith("/")
         ? fullAssetUrl.pathname.substring(1)
         : fullAssetUrl.pathname;
@@ -149,10 +138,9 @@ export default class ContentExtractor {
           const scrollHeight = document.body.scrollHeight;
           window.scrollBy(0, distance);
           totalHeight += distance;
-
           if (totalHeight >= scrollHeight - window.innerHeight) {
             clearInterval(timer);
-            setTimeout(resolve, 1000); // wait an extra sec
+            setTimeout(resolve, 1000);
           }
         }, 100);
       });

@@ -18,6 +18,8 @@
     "express": "^5.1.0",
     "fs-extra": "^11.3.2",
     "openai": "^5.20.3",
-    "puppeteer": "^24.21.0"
+    "puppeteer": "^24.21.0",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2"
   }
 }
