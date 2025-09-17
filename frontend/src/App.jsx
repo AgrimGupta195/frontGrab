@@ -7,14 +7,12 @@ import "./App.css";
 
 export default function App() {
   const [keyword, setKeyword] = useState("");
-  const [resolvedURL, setResolvedURL] = useState("");
-  const [folderName, setFolderName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  // const BACKEND_URL = "http://localhost:3001";
-  const BACKEND_URL = "https://skinify-backend-ui4w.onrender.com";
+  // const BACKEND_URL = "http://localhost:4000";
+  const BACKEND_URL = "https://frontgrab.onrender.com";
 
   const defaultWebsites = [
     "hitesh.ai",
@@ -30,41 +28,37 @@ export default function App() {
 
   const handleScrape = async () => {
     if (!keyword.trim()) return setError("Please enter a keyword or URL!");
+    
     setLoading(true);
-    setError(""); setSuccess(""); setResolvedURL(""); setFolderName("");
+    setError("");
+    setSuccess("");
 
     try {
-      const timeoutDuration = 100000; 
+      const timeoutDuration = 100000; // 100 seconds
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeoutDuration);
 
-      const apiUrl = `${BACKEND_URL}/api/resolve/1`;
-      const requestBody = { keyword: keyword.trim(), isRecursive: false };
+      const apiUrl = `${BACKEND_URL}/clone?url=${encodeURIComponent(keyword.trim())}`;
 
-      const res = await fetch(apiUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(requestBody),
+      const response = await fetch(apiUrl, {
+        method: "GET",
         signal: controller.signal,
       });
 
       clearTimeout(timeoutId);
 
-      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-      const data = await res.json();
-      
-      if (!data.url) {
-        setError("Could not resolve URL. Try another keyword or paste the URL.");
-      } else {
-        setResolvedURL(data.url);
-        setFolderName(data.folder);
-        setSuccess(`Website scraped successfully using website-scraper (Landing page only)`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
+
+      const data = await response.text(); // or response.json() depending on your API response
+      setSuccess(`Website cloned successfully! The cloning process has been completed.`);
+
     } catch (err) {
       if (err.name === "AbortError") {
-        setError(`Request timed out. Try again or check your connection.`);
+        setError(`Request timed out. The website might be too large or complex to clone.`);
       } else if (err.message.includes("HTTP error")) {
-        setError("Server error occurred during scraping. The backend memory might be full. Please try again after 2 minutes.");
+        setError("Server error occurred during cloning. The backend memory might be full. Please try again after 2 minutes.");
       } else {
         setError("Cannot connect to server. Please check if the backend is running.");
       }
@@ -115,8 +109,8 @@ export default function App() {
           <div className="steps-grid">
             {[
               { num: 1, title: "Enter keyword", desc: "Type website name or URL" },
-              { num: 2, title: "Auto-resolve", desc: "Skinify finds the correct URL" },
-              { num: 3, title: "Download & Extract", desc: "Get ZIP and extract files" }
+              { num: 2, title: "Auto-resolve", desc: "FrontGrab finds the correct URL" },
+              { num: 3, title: "Clone & Process", desc: "Website gets cloned successfully" }
             ].map((step) => (
               <div key={step.num} className="step">
                 <div className="step-number">{step.num}</div>
@@ -131,7 +125,7 @@ export default function App() {
 
         <div className="note">
           <p>
-            <strong>Note:</strong> Website Scraper works best with light JS websites. May not work for some sites with dynamic content or network access blocked sites. Scrapes landing page only for optimal performance.
+            <strong>Note:</strong> Website cloning works best with light JS websites. May not work for some sites with dynamic content or network access blocked sites. Clones the complete website structure for optimal results.
           </p>
         </div>
 
@@ -157,11 +151,11 @@ export default function App() {
               {loading ? (
                 <>
                   <Loader2 size={20} className="spin" />
-                  Scraping...
+                  Cloning...
                 </>
               ) : (
                 <>
-                  <Zap size={20} /> Scrape Website
+                  <Zap size={20} /> Clone Website
                 </>
               )}
             </button>
@@ -173,55 +167,13 @@ export default function App() {
                 <div className="progress-fill"></div>
               </div>
               <p className="loading-text">
-                Downloading time depends on the file size and website complexity...
+                Cloning in progress... This may take a while depending on website size and complexity...
               </p>
             </div>
           )}
 
           {error && <div className="message error-message"><AlertCircle size={16}/> {error}</div>}
           {success && <div className="message success-message"><CheckCircle size={16}/> {success}</div>}
-
-          {resolvedURL && folderName && (
-            <div className="result-section">
-              <div className="resolved-url">
-                <Globe size={16} color="#8b5cf6" />
-                <span className="url-label">Resolved URL:</span>
-                <a href={resolvedURL} className="url-link" target="_blank" rel="noopener noreferrer">{resolvedURL}</a>
-              </div>
-              <button className="download-btn" onClick={() => window.open(`${BACKEND_URL}/download/${folderName}`, "_blank")}>
-                <Download size={16}/> Download ZIP
-              </button>
-              
-              <div className="instructions-section">
-                <h4 className="instructions-title">🚀 How to Go Live:</h4>
-                <div className="instructions-grid">
-                  <div className="instruction-method">
-                    <h5>Method 1: VS Code Live Server</h5>
-                    <ol>
-                      <li>Extract the ZIP file to a folder</li>
-                      <li>Open VS Code → File → Open Folder</li>
-                      <li>Select the extracted folder</li>
-                      <li>Open <code>index.html</code>→Right Click</li>
-                      <li>Select <strong>"Open with Live Server"</strong></li>
-                    </ol>
-                  </div>
-                  <div className="instruction-method">
-                    <h5>Method 2: Script Files</h5>
-                    <ol>
-                      <li>Extract the ZIP file to a folder</li>
-                      <li>Open the extracted folder</li>
-                      <li><strong>Windows:</strong> Double-click <code>open.bat</code></li>
-                      <li><strong>Mac/Linux:</strong> Open terminal in folder</li>
-                      <li><strong>Mac/Linux:</strong> Run <code>bash open.sh</code></li>
-                    </ol>
-                  </div>
-                </div>
-                <div className="instructions-note">
-                  <p><strong>💡 Pro Tip:</strong> Both methods will automatically open your browser and serve the website locally with live reload capabilities!</p>
-                </div>
-              </div>
-            </div>
-          )}
         </section>
 
         <section className="examples-section">
@@ -231,14 +183,14 @@ export default function App() {
               <div 
                 key={site} 
                 className="example-card" 
-                onClick={() => setKeyword(`https://${site}`)}
+                onClick={() => setKeyword(site)}
               >
                 <span className="site-name">{site}</span>
                 <button 
                   className="copy-btn" 
                   onClick={(e) => { 
                     e.stopPropagation(); 
-                    copyToClipboard(`https://${site}`); 
+                    copyToClipboard(site); 
                   }}
                 >
                   <Copy size={14}/>
