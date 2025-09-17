@@ -156,7 +156,8 @@ export default function App() {
             {[
               { num: 1, title: "Enter URL", desc: "Type website name or URL" },
               { num: 2, title: "Auto-process", desc: "FrontGrab clones the website" },
-              { num: 3, title: "Download ZIP", desc: "Click download button to get ZIP file" }
+              { num: 3, title: "Download ZIP", desc: "Click download button to get ZIP file" },
+              { num: 4, title: "Go Live", desc: "In VS Code launch with Live Server index.html" }
             ].map((step) => (
               <div key={step.num} className="step">
                 <div className="step-number">{step.num}</div>
