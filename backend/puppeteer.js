@@ -1,5 +1,6 @@
 import puppeteer from "puppeteer-extra";
 import StealthPlugin from "puppeteer-extra-plugin-stealth";
+import chromium from "@sparticuz/chromium"; 
 import fs from "fs-extra";
 import path from "path";
 import { URL } from "url";
@@ -22,13 +23,15 @@ export default class ContentExtractor {
     try {
       await fs.ensureDir(outputDir);
 
+      // ✅ Use serverless-compatible Chromium
       browser = await puppeteer.launch({
-        headless: true,
-        args: ["--no-sandbox", "--disable-dev-shm-usage"],
+        args: chromium.args,
+        executablePath: await chromium.executablePath(),
+        headless: chromium.headless, // true in serverless envs
+        defaultViewport: { width: 1920, height: 1080 },
       });
 
       const page = await browser.newPage();
-      await page.setViewport({ width: 1920, height: 1080 });
 
       // Set user-agent & headers to bypass Cloudflare
       await page.setUserAgent(
@@ -65,12 +68,15 @@ export default class ContentExtractor {
           const assetPath = urlObj.pathname.startsWith("/")
             ? urlObj.pathname.substring(1)
             : urlObj.pathname;
+
           const localPath = path.join(outputDir, assetPath);
           await fs.ensureDir(path.dirname(localPath));
           await fs.writeFile(localPath, buffer);
         } catch (e) {
           console.warn(
-            chalk.yellow(`⚠️ Could not save asset: ${assetUrl.substring(0, 80)}...`)
+            chalk.yellow(
+              `⚠️ Could not save asset: ${assetUrl.substring(0, 80)}...`
+            )
           );
         }
       }
@@ -94,18 +100,16 @@ export default class ContentExtractor {
       });
 
       console.log(chalk.blue("🤖 Sending content to GenAI for enhancement..."));
+      // If you want AI enhancement, uncomment:
       // const enhanced = await generateHtmlClone($.html(), cssContent, jsContent);
-      // console.log(chalk.blue("🛠️ Enhancements received from GenAI."));
-      // console.log(enhanced);
       // await fs.writeFile(path.join(outputDir, "index.html"), enhanced.html, "utf-8");
-      // await fs.writeFile(path.join(outputDir, "style.css"), enhanced.css,"utf-8");
-      // await fs.writeFile(path.join(outputDir, "script.js"),enhanced.js, "utf-8");
+      // await fs.writeFile(path.join(outputDir, "style.css"), enhanced.css, "utf-8");
+      // await fs.writeFile(path.join(outputDir, "script.js"), enhanced.js, "utf-8");
 
-      
-      // // // Save enhanced files
-      await fs.writeFile(path.join(outputDir, "index.html"),$.html(), "utf-8");
-      await fs.writeFile(path.join(outputDir, "style.css"), cssContent,"utf-8");
-      await fs.writeFile(path.join(outputDir, "script.js"),jsContent, "utf-8");
+      // Save raw extracted files
+      await fs.writeFile(path.join(outputDir, "index.html"), $.html(), "utf-8");
+      await fs.writeFile(path.join(outputDir, "style.css"), cssContent, "utf-8");
+      await fs.writeFile(path.join(outputDir, "script.js"), jsContent, "utf-8");
 
       console.log(chalk.green("✅ Site cloned and enhanced successfully."));
       return { outputDir };
