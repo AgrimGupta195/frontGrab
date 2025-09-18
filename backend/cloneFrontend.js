@@ -1,5 +1,5 @@
 // processWebsiteClone.js
-import ContentExtractor from "./puppeteer.js";
+import ContentExtractor from "./agents/puppeteer.js";
 import path from "path";
 import chalk from "chalk";
 

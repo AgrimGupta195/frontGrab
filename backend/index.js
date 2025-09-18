@@ -7,6 +7,7 @@ import processWebsiteClone from "./cloneFrontend.js"; // your script
 import { correctUrl } from "./agents/urlCorrector.js";
 import dotenv from "dotenv";
 import cors from "cors";
+import processEnhancedWebsite from "./siteEnhaced.js";
 
 dotenv.config();
 const app = express();
@@ -74,6 +75,56 @@ app.get("/clone", async (req, res) => {
     return res.status(500).json({ error: err.message });
   }
 });
+app.post("/siteEnchanced", async (req, res) => {
+  const { urls, query, userSite } = req.body;
+
+  if (!urls || !Array.isArray(urls)) {
+    return res.status(400).json({ error: "❌ Please provide a valid urls array" });
+  }
+  if (!query) {
+    return res.status(400).json({ error: "❌ Please provide a valid query" });
+  }
+  if (!userSite) {
+    return res.status(400).json({ error: "❌ Please provide a valid userSite URL" });
+  }
+
+  const fixedUrls = [];
+  for (let i = 0; i < urls.length; i++) {
+    const a = await correctUrl(urls[i]);
+    fixedUrls.push(a);
+  }
+
+  const fixUserSite = await correctUrl(userSite);
+  console.log("✅ Corrected URL:", fixUserSite);
+  
+
+  const tempDir = path.join(os.tmpdir(), `clone-${Date.now()}`);
+  try {
+    const result = await processEnhancedWebsite(fixedUrls, fixUserSite, query, { output: tempDir });
+
+    if (!result.success) {
+      throw new Error(result.error || "Unknown cloning error.");
+    }
+
+    const projectName = path.basename(result.outputDir);
+    console.log("📦 Zipping:", result.outputDir);
+
+    res.on("finish", async () => {
+      try {
+        await fs.remove(result.outputDir);
+        console.log("🧹 Cleaned up:", result.outputDir);
+      } catch (cleanupErr) {
+        console.error("⚠️ Cleanup failed:", cleanupErr.message);
+      }
+    });
+
+    return await zipAndSend(res, result.outputDir, projectName);
+  } catch (err) {
+    console.error("❌ Clone failed:", err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 
 app.listen(PORT, () => {
   console.log(`✅ Server running at http://localhost:${PORT}`);
