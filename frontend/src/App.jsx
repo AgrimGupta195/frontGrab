@@ -458,8 +458,8 @@ export default function App() {
   const userSiteInputRef = useRef(null);
   const enhancementQueryRef = useRef(null);
 
-  const BACKEND_URL = "http://localhost:5050"; // Updated to match your backend port
-  const WS_URL = "ws://localhost:5050";
+  const BACKEND_URL = "https://frontgrab.onrender.com"; // Updated to match your backend port
+  const WS_URL = "wss://frontgrab.onrender.com";
 
   const defaultWebsites = [
     "hitesh.ai",
