@@ -13,16 +13,21 @@
   "dependencies": {
     "@sparticuz/chromium": "^138.0.2",
     "archiver": "^7.0.1",
+    "axios": "^1.12.2",
     "chalk": "^5.6.2",
     "cheerio": "^1.1.2",
     "cors": "^2.8.5",
     "dotenv": "^17.2.2",
+    "events": "^3.3.0",
     "express": "^5.1.0",
     "fs-extra": "^11.3.2",
+    "http": "^0.0.1-security",
+    "https": "^1.0.0",
     "openai": "^5.20.3",
     "puppeteer": "^24.22.0",
     "puppeteer-extra": "^3.3.6",
     "puppeteer-extra-plugin-stealth": "^2.11.2",
-    "tiktoken": "^1.0.22"
+    "tiktoken": "^1.0.22",
+    "ws": "^8.18.3"
   }
 }

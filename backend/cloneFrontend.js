@@ -11,18 +11,20 @@ function getProjectName(url) {
     .toLowerCase();
 }
 
-export default async function processWebsiteClone(url, options = {}) {
+export default async function processWebsiteClone(url, options = {},sendLog) {
   try {
     const projectName = getProjectName(url);
     const outputDir = path.join(options.output || "./output", projectName);
+    sendLog("▶️ Starting direct download cloning process...");
 
     console.log(chalk.blue("▶️ Starting direct download cloning process..."));
     // ✅ call static method on class
-    const result = await ContentExtractor.extractFrontendContent(url, outputDir);
+    const result = await ContentExtractor.extractFrontendContent(url, outputDir,sendLog);
 
     if (!result || !result.outputDir) {
       throw new Error("No content retrieved from the website.");
     }
+    sendLog("✅ Clone finished at: " + result.outputDir);
 
     console.log(chalk.green(`✅ Clone finished at: ${result.outputDir}`));
 

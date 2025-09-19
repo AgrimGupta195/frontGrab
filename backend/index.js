@@ -9,12 +9,37 @@ import dotenv from "dotenv";
 import cors from "cors";
 import processEnhancedWebsite from "./siteEnhaced.js";
 
+import { WebSocketServer } from "ws";
 dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 8080;
 
 app.use(express.json());
 app.use(cors({ origin: "*" }));
+const server=app.listen(PORT, () => {
+  console.log(`✅ Server running at http://localhost:${PORT}`);
+});
+server.setTimeout(480000);
+// After you create your server
+const wss = new WebSocketServer({ server });
+let clients = [];
+
+wss.on("connection", (ws) => {
+  console.log("Client connected");
+  clients.push(ws);
+
+  ws.on("close", () => {
+    clients = clients.filter(c => c !== ws);
+  });
+});
+
+// Helper function to send logs to all clients
+export function sendLogToClients(message) {
+  clients.forEach(ws => ws.send(message));
+}
+
+
+
 
 // Helper → zip and stream a folder
 async function zipAndSend(res, folderPath, zipName) {
@@ -42,21 +67,23 @@ app.get("/clone", async (req, res) => {
     console.error("❌ URL correction failed:", err.message);
     return res.status(400).json({ error: "❌ Invalid URL provided." });
   }
-
+  sendLogToClients("✅ Corrected URL: " + fixUrl);
   console.log("✅ Corrected URL:", fixUrl);
 
   // Create unique temp directory
   const tempDir = path.join(os.tmpdir(), `clone-${Date.now()}`);
 
   try {
+    sendLogToClients("▶️ Cloning site: " + fixUrl);
     console.log("▶️ Cloning site:", fixUrl);
-    const result = await processWebsiteClone(fixUrl, { output: tempDir });
+    const result = await processWebsiteClone(fixUrl, { output: tempDir },sendLogToClients);
 
     if (!result.success) {
       throw new Error(result.error || "Unknown cloning error.");
     }
 
     const projectName = path.basename(result.outputDir);
+    sendLogToClients("✅ Clone finished at: " + result.outputDir);
     console.log("📦 Zipping:", result.outputDir);
 
     // Cleanup after sending response
@@ -88,28 +115,27 @@ app.post("/siteEnchanced", async (req, res) => {
     return res.status(400).json({ error: "❌ Please provide a valid userSite URL" });
   }
 
-  // ✅ Safer URL corrections
-  const fixedUrls = (await Promise.all(urls.map(safeCorrectUrl))).filter(Boolean);
-  if (fixedUrls.length === 0) {
-    return res.status(400).json({ error: "❌ No valid URLs provided" });
+  const fixedUrls = [];
+  for (let i = 0; i < urls.length; i++) {
+    const a = await correctUrl(urls[i]);
+    fixedUrls.push(a);
   }
 
-  const fixUserSite = await safeCorrectUrl(userSite);
-  if (!fixUserSite) {
-    return res.status(400).json({ error: "❌ Invalid userSite URL" });
-  }
-
-  console.log("✅ Corrected User Site:", fixUserSite);
+  const fixUserSite = await correctUrl(userSite);
+  sendLogToClients("✅ Corrected URL: " + fixUserSite);
+  console.log("✅ Corrected URL:", fixUserSite);
+  
 
   const tempDir = path.join(os.tmpdir(), `clone-${Date.now()}`);
   try {
-    const result = await processEnhancedWebsite(fixedUrls, fixUserSite, query, { output: tempDir });
+    const result = await processEnhancedWebsite(fixedUrls, fixUserSite, query, { output: tempDir },sendLogToClients);
 
     if (!result.success) {
       throw new Error(result.error || "Unknown cloning error.");
     }
 
     const projectName = path.basename(result.outputDir);
+    console.log("📦 Zipping:", result.outputDir);
 
     res.on("finish", async () => {
       try {
@@ -122,13 +148,10 @@ app.post("/siteEnchanced", async (req, res) => {
 
     return await zipAndSend(res, result.outputDir, projectName);
   } catch (err) {
-    console.error("❌ Enhancement failed:", err.stack || err.message);
-    await fs.remove(tempDir).catch(() => {}); // cleanup tempDir on error
+    console.error("❌ Clone failed:", err.message);
     return res.status(500).json({ error: err.message });
   }
 });
 
 
-app.listen(PORT, () => {
-  console.log(`✅ Server running at http://localhost:${PORT}`);
-});
+

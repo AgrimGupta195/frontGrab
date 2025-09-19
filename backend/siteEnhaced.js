@@ -12,7 +12,7 @@ function getProjectName(url) {
     .toLowerCase();
 }
 
-export default async function processEnhancedWebsite(urls, siteUrl, query, options = {}) {
+export default async function processEnhancedWebsite(urls, siteUrl, query, options = {},sendLog) {
   if (!siteUrl) throw new Error("siteUrl is undefined");
 
   try {
@@ -24,8 +24,9 @@ export default async function processEnhancedWebsite(urls, siteUrl, query, optio
     await fs.ensureDir(outputDir);
 
     console.log(chalk.blue("📁 Output directory created at:"), outputDir);
+    sendLog("📁 Output directory created at:" + outputDir);
 
-    const extractor = new MultiSiteExtractor(urls, siteUrl, query, outputDir);
+    const extractor = new MultiSiteExtractor(urls, siteUrl, query, outputDir,sendLog);
     const result = await extractor.combineSitesThenEnhance();
 
     if (!result || !result.outputDir) {
@@ -33,6 +34,7 @@ export default async function processEnhancedWebsite(urls, siteUrl, query, optio
     }
 
     console.log(chalk.green(`✅ Clone finished at: ${result.outputDir}`));
+    sendLog("✅ Clone finished at: " + result.outputDir);
     return { success: true, outputDir: result.outputDir, projectName };
   } catch (error) {
     console.error(chalk.red("❌ Website cloning failed:", error.message));
