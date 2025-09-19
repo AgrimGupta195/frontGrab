@@ -537,6 +537,8 @@ export default function App() {
     setError("");
     setSuccess("");
     setDownloadData(null);
+    setShowLogWindow(true);
+
 
     try {
       const timeoutDuration = 360000; // 6 minutes
