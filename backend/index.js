@@ -88,15 +88,18 @@ app.post("/siteEnchanced", async (req, res) => {
     return res.status(400).json({ error: "❌ Please provide a valid userSite URL" });
   }
 
-  const fixedUrls = [];
-  for (let i = 0; i < urls.length; i++) {
-    const a = await correctUrl(urls[i]);
-    fixedUrls.push(a);
+  // ✅ Safer URL corrections
+  const fixedUrls = (await Promise.all(urls.map(safeCorrectUrl))).filter(Boolean);
+  if (fixedUrls.length === 0) {
+    return res.status(400).json({ error: "❌ No valid URLs provided" });
   }
 
-  const fixUserSite = await correctUrl(userSite);
-  console.log("✅ Corrected URL:", fixUserSite);
-  
+  const fixUserSite = await safeCorrectUrl(userSite);
+  if (!fixUserSite) {
+    return res.status(400).json({ error: "❌ Invalid userSite URL" });
+  }
+
+  console.log("✅ Corrected User Site:", fixUserSite);
 
   const tempDir = path.join(os.tmpdir(), `clone-${Date.now()}`);
   try {
@@ -107,7 +110,6 @@ app.post("/siteEnchanced", async (req, res) => {
     }
 
     const projectName = path.basename(result.outputDir);
-    console.log("📦 Zipping:", result.outputDir);
 
     res.on("finish", async () => {
       try {
@@ -120,7 +122,8 @@ app.post("/siteEnchanced", async (req, res) => {
 
     return await zipAndSend(res, result.outputDir, projectName);
   } catch (err) {
-    console.error("❌ Clone failed:", err.message);
+    console.error("❌ Enhancement failed:", err.stack || err.message);
+    await fs.remove(tempDir).catch(() => {}); // cleanup tempDir on error
     return res.status(500).json({ error: err.message });
   }
 });
