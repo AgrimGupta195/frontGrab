@@ -4,8 +4,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const client = new OpenAI({
-   apiKey: process.env.GEMINI_API_KEY,
-   baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/',
+   apiKey: process.env.OPENAI_API_KEY,
 });
 
 
@@ -33,7 +32,7 @@ export async function correctUrl(url) {
 
   try {
     const response = await client.chat.completions.create({
-      model: "gemini-1.5-flash",
+      model: "gpt-4.1-mini",
       messages: [
         {
           role: "system",

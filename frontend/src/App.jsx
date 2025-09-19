@@ -137,7 +137,7 @@ const HomePage = ({ navigateTo, defaultWebsites, setKeyword, copyToClipboard }) 
 const ClonePage = ({ 
   navigateTo, keywordInputRef, keyword, setKeyword, handleKeyPress, loading, 
   handleScrape, error, success, downloadData, handleDownload, defaultWebsites, 
-  copyToClipboard ,showLogWindow
+  copyToClipboard, showLogWindow, closeLogWindow, serverLogs, logContentRef
 }) => (
   <>
     <div className="page-header">
@@ -229,7 +229,7 @@ const ClonePage = ({
               <X size={16} />
             </button>
           </div>
-          <div className="log-content">
+          <div className="log-content" ref={logContentRef}>
             {serverLogs.map((log, index) => (
               <div key={index} className={`log-entry ${log.type}`}>
                 <span className="log-timestamp">
@@ -276,7 +276,7 @@ const EnhancePage = ({
   updateInspirationSite, removeInspirationSite, addInspirationSite,
   enhancementQueryRef, enhancementQuery, setEnhancementQuery,
   handleEnhancedSite, enhancedLoading, enhancedError, enhancedSuccess,
-  enhancedDownloadData, handleDownload, showLogWindow, closeLogWindow, serverLogs
+  enhancedDownloadData, handleDownload, showLogWindow, closeLogWindow, serverLogs,logContentRef
 }) => (
   <>
     <div className="page-header">
@@ -405,7 +405,7 @@ const EnhancePage = ({
               <X size={16} />
             </button>
           </div>
-          <div className="log-content">
+          <div className="log-content" ref={logContentRef}>
             {serverLogs.map((log, index) => (
               <div key={index} className={`log-entry ${log.type}`}>
                 <span className="log-timestamp">
@@ -457,6 +457,8 @@ export default function App() {
   const keywordInputRef = useRef(null);
   const userSiteInputRef = useRef(null);
   const enhancementQueryRef = useRef(null);
+    const logContentRef = useRef(null);
+
 
   const BACKEND_URL = "https://frontgrab.onrender.com"; // Updated to match your backend port
   const WS_URL = "wss://frontgrab.onrender.com";
@@ -763,18 +765,22 @@ export default function App() {
         {currentPage === 'clone' && (
           <ClonePage 
             navigateTo={navigateTo}
-            keywordInputRef={keywordInputRef}
-            keyword={keyword}
-            setKeyword={setKeyword}
-            handleKeyPress={handleKeyPress}
-            loading={loading}
-            handleScrape={handleScrape}
-            error={error}
-            success={success}
-            downloadData={downloadData}
-            handleDownload={handleDownload}
-            defaultWebsites={defaultWebsites}
-            copyToClipboard={copyToClipboard}
+    keywordInputRef={keywordInputRef}
+    keyword={keyword}
+    setKeyword={setKeyword}
+    handleKeyPress={handleKeyPress}
+    loading={loading}
+    handleScrape={handleScrape}
+    error={error}
+    success={success}
+    downloadData={downloadData}
+    handleDownload={handleDownload}
+    defaultWebsites={defaultWebsites}
+    copyToClipboard={copyToClipboard}
+    showLogWindow={showLogWindow}
+    closeLogWindow={closeLogWindow}
+    serverLogs={serverLogs}
+    logContentRef={logContentRef}
           />
         )}
         {currentPage === 'enhance' && (
