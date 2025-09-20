@@ -70,7 +70,10 @@ const HomePage = ({ navigateTo, defaultWebsites, setKeyword, copyToClipboard }) 
         </div>
       </div>
     </section>
-
+    <div className="note">
+      <Info size={16} />
+      <span>Works best with static websites. Some dynamic sites may have limitations.</span>
+    </div>
     {/* How It Works */}
     <section className="how-it-works">
       <div className="how-it-works-header">
@@ -126,10 +129,7 @@ const HomePage = ({ navigateTo, defaultWebsites, setKeyword, copyToClipboard }) 
       </div>
     </section>
 
-    <div className="note">
-      <Info size={16} />
-      <span>Works best with static websites. Some dynamic sites may have limitations.</span>
-    </div>
+    
   </>
 );
 
