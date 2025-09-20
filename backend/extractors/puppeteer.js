@@ -14,30 +14,41 @@ export default class ContentExtractor {
    * Extracts and enhances frontend content of a website
    * @param {string} url - Website URL
    * @param {string} outputDir - Local folder to save files
+   * @param {(msg: string) => void} sendLog - Optional logger function
    */
-  static async extractFrontendContent(url, outputDir,sendLog) {
+  static async extractFrontendContent(url, outputDir, sendLog) {
     let browser = null;
-    sendLog("🚀 Launching headless browser for site cloning...");
+    if (sendLog) sendLog("🚀 Launching headless browser for site cloning...");
     console.log(chalk.blue("🚀 Launching headless browser for site cloning..."));
 
     try {
       await fs.ensureDir(outputDir);
 
-      // ✅ Use serverless-compatible Chromium
+      // ✅ Use serverless-compatible Chromium (fallback if executablePath fails)
+      let executablePath;
+      try {
+        executablePath = await chromium.executablePath();
+      } catch {
+        executablePath = puppeteer.executablePath(); // fallback to local puppeteer
+      }
+
       browser = await puppeteer.launch({
         args: chromium.args,
-        executablePath: await chromium.executablePath(),
-        headless: chromium.headless, // true in serverless envs
+        executablePath,
+        headless: chromium.headless ?? true,
         defaultViewport: { width: 1920, height: 1080 },
       });
 
       const page = await browser.newPage();
+
       // Set user-agent & headers to bypass Cloudflare
       await page.setUserAgent(
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"
       );
       await page.setExtraHTTPHeaders({ "Accept-Language": "en-US,en;q=0.9" });
-      sendLog("🚀 Navigating to the website...");
+
+      if (sendLog) sendLog("🚀 Navigating to the website...");
+
       // Capture responses for assets
       const assetResponses = new Map();
       page.on("response", async (res) => {
@@ -52,11 +63,13 @@ export default class ContentExtractor {
       
       // Navigate and auto-scroll for lazy-loaded content
       await page.goto(url, { waitUntil: "networkidle2", timeout: 120000 });
-      await this.autoScroll(page,sendLog);
+      await this.autoScroll(page, sendLog);
 
       let html = await page.content();
       const baseUrl = new URL(url);
-      sendLog("🚀 Saving assets locally...");
+
+      if (sendLog) sendLog("🚀 Saving assets locally...");
+      
       // Save all assets locally
       for (const [assetUrl, { buffer }] of assetResponses.entries()) {
         try {
@@ -79,38 +92,43 @@ export default class ContentExtractor {
           );
         }
       }
-      sendLog("🚀 Extracting HTML...");
+
+      if (sendLog) sendLog("🚀 Extracting HTML...");
+
       // Load HTML into Cheerio
       const $ = cheerio.load(html);
       $('script[id="__NEXT_DATA__"]').remove();
       $('script[src*="_next/static/"]').remove();
-      sendLog("🚀 Extracting CSS & JS...");
-      // Extract inline CSS & JS for GenAI
+
+      if (sendLog) sendLog("🚀 Extracting CSS & JS...");
+
+      // Extract inline CSS
       let cssContent = "";
       $("style").each((_, el) => {
         cssContent += $(el).html() + "\n";
         $(el).remove();
       });
-      sendLog("🚀 Extracting JS...");
+
+      if (sendLog) sendLog("🚀 Extracting JS...");
+
+      // Extract inline JS
       let jsContent = "";
       $("script").each((_, el) => {
         jsContent += $(el).html() + "\n";
         $(el).remove();
       });
-      sendLog("🤖 Sending content to GenAI for enhancement...");
+
+      if (sendLog) sendLog("🤖 Sending content to GenAI for enhancement...");
       console.log(chalk.blue("🤖 Sending content to GenAI for enhancement..."));
-      // If you want AI enhancement, uncomment:
-      // const enhanced = await generateHtmlClone($.html(), cssContent, jsContent);
-      // await fs.writeFile(path.join(outputDir, "index.html"), enhanced.html, "utf-8");
-      // await fs.writeFile(path.join(outputDir, "style.css"), enhanced.css, "utf-8");
-      // await fs.writeFile(path.join(outputDir, "script.js"), enhanced.js, "utf-8");
 
       // Save raw extracted files
       await fs.writeFile(path.join(outputDir, "index.html"), $.html(), "utf-8");
       await fs.writeFile(path.join(outputDir, "style.css"), cssContent, "utf-8");
       await fs.writeFile(path.join(outputDir, "script.js"), jsContent, "utf-8");
-      sendLog("✅ Site cloned and enhanced successfully.");
+
+      if (sendLog) sendLog("✅ Site cloned and enhanced successfully.");
       console.log(chalk.green("✅ Site cloned and enhanced successfully."));
+
       return { outputDir };
     } catch (error) {
       console.error(chalk.red(`❌ Error during extraction: ${error.message}`));
@@ -132,8 +150,8 @@ export default class ContentExtractor {
     }
   }
 
-  static async autoScroll(page,sendLog) {
-    sendLog("🚀 Navigate and auto-scroll for lazy-loaded content ");
+  static async autoScroll(page, sendLog) {
+    if (sendLog) sendLog("🚀 Navigate and auto-scroll for lazy-loaded content ");
     await page.evaluate(async () => {
       await new Promise((resolve) => {
         let totalHeight = 0;
