@@ -6,6 +6,7 @@ import path from "path";
 import { URL } from "url";
 import chalk from "chalk";
 import * as cheerio from "cheerio";
+import fetch from "node-fetch"; // ✅ use fetch for external CSS/JS
 
 puppeteer.use(StealthPlugin());
 
@@ -33,6 +34,7 @@ export default class ContentExtractor {
 
       sendLog("✅ Headless browser launched");
 
+      // Capture responses (assets like images, fonts, etc.)
       const assetResponses = new Map();
       page.on("response", async (res) => {
         const reqUrl = res.url();
@@ -52,6 +54,7 @@ export default class ContentExtractor {
 
       sendLog("✅ Site loaded");
 
+      // Save all captured assets locally
       for (const [assetUrl, { buffer }] of assetResponses.entries()) {
         try {
           const urlObj = new URL(assetUrl);
@@ -95,8 +98,11 @@ export default class ContentExtractor {
           if (href) {
             try {
               const absUrl = new URL(href, baseUrl).href;
-              const cssText = await (await page.goto(absUrl)).text();
-              cssContent += `\n/* From ${href} */\n` + cssText + "\n";
+              const res = await fetch(absUrl);
+              if (res.ok) {
+                const cssText = await res.text();
+                cssContent += `\n/* From ${href} */\n` + cssText + "\n";
+              }
             } catch {
               console.warn(chalk.yellow(`⚠️ Could not fetch CSS: ${href}`));
             }
@@ -125,8 +131,11 @@ export default class ContentExtractor {
           if (src) {
             try {
               const absUrl = new URL(src, baseUrl).href;
-              const jsText = await (await page.goto(absUrl)).text();
-              jsContent += `\n/* From ${src} */\n` + jsText + "\n";
+              const res = await fetch(absUrl);
+              if (res.ok) {
+                const jsText = await res.text();
+                jsContent += `\n/* From ${src} */\n` + jsText + "\n";
+              }
             } catch {
               console.warn(chalk.yellow(`⚠️ Could not fetch JS: ${src}`));
             }
@@ -148,6 +157,7 @@ export default class ContentExtractor {
       await fs.writeFile(path.join(outputDir, "index.html"), $.html(), "utf-8");
 
       sendLog("✅ index.html, style.css, and script.js generated");
+      console.log(chalk.green("✅ Site cloned successfully"));
     } catch (err) {
       console.error(chalk.red("❌ Error during extraction:"), err);
       sendLog("❌ Error during extraction: " + err.message);
