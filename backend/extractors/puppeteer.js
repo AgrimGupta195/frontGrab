@@ -89,12 +89,37 @@ sendLog("✅ User site assets saved");
       $('script[id="__NEXT_DATA__"]').remove();
       $('script[src*="_next/static/"]').remove();
 
-      // Extract inline CSS & JS for GenAI
-      let cssContent = "";
-      $("style").each((_, el) => {
-        cssContent += $(el).html() + "\n";
-        $(el).remove();
-      });
+     // Extract inline CSS
+let cssContent = "";
+$("style").each((_, el) => {
+  cssContent += $(el).html() + "\n";
+  $(el).remove();
+});
+
+// Extract external CSS <link> files
+const cssLinks = [];
+$('link[rel="stylesheet"]').each((_, el) => {
+  const href = $(el).attr("href");
+  if (href) cssLinks.push(new URL(href, baseUrl).href);
+});
+
+// Fetch external CSS
+for (const cssUrl of cssLinks) {
+  try {
+    if (assetResponses.has(cssUrl)) {
+      const { buffer } = assetResponses.get(cssUrl);
+      cssContent += buffer.toString("utf-8") + "\n";
+    } else {
+      // fallback: fetch manually if not captured
+      const res = await fetch(cssUrl);
+      if (res.ok) {
+        cssContent += await res.text() + "\n";
+      }
+    }
+  } catch (e) {
+    console.warn(chalk.yellow(`⚠️ Could not fetch CSS: ${cssUrl}`));
+  }
+}
 
       let jsContent = "";
       $("script").each((_, el) => {
