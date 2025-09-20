@@ -169,6 +169,7 @@ sendLog("Last checking started");
     - If user says "Navbar like Amazon", fetch only the Amazon Navbar block.
     - Always ensure CSS selectors and JS match the chosen HTML snippet.
     - Do not include unrelated inspiration blocks 
+    remove all the tailwind css and put it into css file
     - Please make sure that it make full site of one page. not that large but it should be full site.
     in html link css name styles.css and in js link js name script.js
     - Output must be valid JSON only.
