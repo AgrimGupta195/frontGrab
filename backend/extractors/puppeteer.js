@@ -6,7 +6,6 @@ import path from "path";
 import { URL } from "url";
 import chalk from "chalk";
 import * as cheerio from "cheerio";
-import { generateHtmlClone } from "./agents/gemini.js";
 
 puppeteer.use(StealthPlugin());
 
