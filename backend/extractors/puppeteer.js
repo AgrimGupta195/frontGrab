@@ -52,7 +52,7 @@ export default class ContentExtractor {
       
       // Navigate and auto-scroll for lazy-loaded content
       await page.goto(url, { waitUntil: "networkidle2", timeout: 120000 });
-      await this.autoScroll(page);
+      await this.autoScroll(page,sendLog);
 
       let html = await page.content();
       const baseUrl = new URL(url);
@@ -132,7 +132,7 @@ export default class ContentExtractor {
     }
   }
 
-  static async autoScroll(page) {
+  static async autoScroll(page,sendLog) {
     sendLog("🚀 Navigate and auto-scroll for lazy-loaded content ");
     await page.evaluate(async () => {
       await new Promise((resolve) => {
