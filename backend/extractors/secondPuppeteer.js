@@ -14,7 +14,6 @@ extra.use(StealthPlugin()); // puppeteer-extra works with puppeteer-core when la
 
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-// Global browser for warm starts (serverless friendly)
 let _browser = null;
 async function getBrowser(sendLog) {
   try {
@@ -22,7 +21,7 @@ async function getBrowser(sendLog) {
       return _browser;
     }
 
-    const execPath = await chromium.executablePath(); // sparticuz provides the binary path
+    const execPath = await chromium.executablePath(); 
     sendLog?.(chalk.gray(`Using chromium executable: ${execPath}`));
 
     _browser = await extra.launch({
