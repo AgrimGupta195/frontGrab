@@ -6,7 +6,6 @@ import path from "path";
 import { URL } from "url";
 import chalk from "chalk";
 import * as cheerio from "cheerio";
-import fetch from "node-fetch"; // ✅ use fetch for external CSS/JS
 
 puppeteer.use(StealthPlugin());
 
@@ -34,16 +33,35 @@ export default class ContentExtractor {
 
       sendLog("✅ Headless browser launched");
 
-      // Capture responses (assets like images, fonts, etc.)
       const assetResponses = new Map();
+
+      // Capture external CSS & JS
       page.on("response", async (res) => {
-        const reqUrl = res.url();
-        if (res.status() >= 200 && res.status() < 400) {
-          try {
-            const buffer = await res.buffer();
-            if (buffer.length > 0) assetResponses.set(reqUrl, { buffer });
-          } catch {}
-        }
+        try {
+          const reqUrl = res.url();
+          if (!reqUrl.startsWith("http")) return;
+
+          const ct = res.headers()["content-type"] || "";
+
+          if (
+            ct.includes("text/css") ||
+            ct.includes("javascript") ||
+            ct.includes("application/javascript")
+          ) {
+            let content = "";
+            try {
+              content = await res.text(); // ✅ prefer text
+            } catch {
+              try {
+                content = (await res.buffer()).toString("utf-8");
+              } catch {}
+            }
+
+            if (content && content.trim().length > 0) {
+              assetResponses.set(reqUrl, { content, contentType: ct });
+            }
+          }
+        } catch {}
       });
 
       await page.goto(url, { waitUntil: "networkidle2", timeout: 120000 });
@@ -54,8 +72,11 @@ export default class ContentExtractor {
 
       sendLog("✅ Site loaded");
 
-      // Save all captured assets locally
-      for (const [assetUrl, { buffer }] of assetResponses.entries()) {
+      let cssContent = "";
+      let jsContent = "";
+
+      // Save captured assets
+      for (const [assetUrl, { content, contentType }] of assetResponses.entries()) {
         try {
           const urlObj = new URL(assetUrl);
           if (urlObj.hostname !== baseUrl.hostname) continue;
@@ -67,7 +88,14 @@ export default class ContentExtractor {
 
           const localPath = path.join(outputDir, assetPath);
           await fs.ensureDir(path.dirname(localPath));
-          await fs.writeFile(localPath, buffer);
+          await fs.writeFile(localPath, content, "utf-8");
+
+          if (contentType.includes("text/css")) {
+            cssContent += `\n/* From ${assetUrl} */\n` + content;
+          } else if (contentType.includes("javascript")) {
+            jsContent += `\n/* From ${assetUrl} */\n` + content;
+          }
+
           sendLog(`📥 Saved asset: ${assetUrl.substring(0, 80)}...`);
         } catch {
           console.warn(chalk.yellow(`⚠️ Could not save asset: ${assetUrl.substring(0, 80)}...`));
@@ -76,45 +104,16 @@ export default class ContentExtractor {
 
       sendLog("✅ Assets saved");
 
+      // Parse DOM
       const $ = cheerio.load(html);
       $('script[id="__NEXT_DATA__"]').remove();
       $('script[src*="_next/static/"]').remove();
-
-      // =============================
-      // CSS Extraction
-      // =============================
-      let cssContent = "";
 
       // Inline <style>
       $("style").each((_, el) => {
         cssContent += $(el).html() + "\n";
         $(el).remove();
       });
-
-      // External CSS
-      await Promise.all(
-        $('link[rel="stylesheet"]').map(async (_, el) => {
-          const href = $(el).attr("href");
-          if (href) {
-            try {
-              const absUrl = new URL(href, baseUrl).href;
-              const res = await fetch(absUrl);
-              if (res.ok) {
-                const cssText = await res.text();
-                cssContent += `\n/* From ${href} */\n` + cssText + "\n";
-              }
-            } catch {
-              console.warn(chalk.yellow(`⚠️ Could not fetch CSS: ${href}`));
-            }
-          }
-          $(el).remove();
-        }).get()
-      );
-
-      // =============================
-      // JS Extraction
-      // =============================
-      let jsContent = "";
 
       // Inline <script>
       $("script").each((_, el) => {
@@ -124,40 +123,17 @@ export default class ContentExtractor {
         }
       });
 
-      // External JS
-      await Promise.all(
-        $("script[src]").map(async (_, el) => {
-          const src = $(el).attr("src");
-          if (src) {
-            try {
-              const absUrl = new URL(src, baseUrl).href;
-              const res = await fetch(absUrl);
-              if (res.ok) {
-                const jsText = await res.text();
-                jsContent += `\n/* From ${src} */\n` + jsText + "\n";
-              }
-            } catch {
-              console.warn(chalk.yellow(`⚠️ Could not fetch JS: ${src}`));
-            }
-          }
-          $(el).remove();
-        }).get()
-      );
-
-      // =============================
-      // Save files
-      // =============================
+      // Save combined CSS & JS
       await fs.writeFile(path.join(outputDir, "style.css"), cssContent, "utf-8");
       await fs.writeFile(path.join(outputDir, "script.js"), jsContent, "utf-8");
 
-      // Inject back into HTML
+      // Inject into HTML
       $("head").append('<link rel="stylesheet" href="style.css">');
       $("body").append('<script src="script.js"></script>');
 
       await fs.writeFile(path.join(outputDir, "index.html"), $.html(), "utf-8");
 
       sendLog("✅ index.html, style.css, and script.js generated");
-      console.log(chalk.green("✅ Site cloned successfully"));
     } catch (err) {
       console.error(chalk.red("❌ Error during extraction:"), err);
       sendLog("❌ Error during extraction: " + err.message);
