@@ -350,6 +350,24 @@ const EnhancePage = ({
           rows="4"
         />
       </div>
+       {enhancedDownloadData && (
+        <div className="download-section">
+          <div className="download-card enhanced-download">
+            <div className="download-info">
+              <h4>Enhancement Complete!</h4>
+              <p><strong>File:</strong> {enhancedDownloadData.filename}</p>
+              <p><strong>Size:</strong> {enhancedDownloadData.size} KB</p>
+            </div>
+            <button 
+              onClick={() => handleDownload(enhancedDownloadData)}
+              className="download-btn enhanced-download-btn"
+            >
+              <Download size={20} />
+              Download Enhanced Site
+            </button>
+          </div>
+        </div>
+      )}
 
       <button
         onClick={handleEnhancedSite}
@@ -372,24 +390,7 @@ const EnhancePage = ({
       {enhancedError && <div className="message error-message"><AlertCircle size={16}/> {enhancedError}</div>}
       {enhancedSuccess && <div className="message success-message"><CheckCircle size={16}/> {enhancedSuccess}</div>}
 
-      {enhancedDownloadData && (
-        <div className="download-section">
-          <div className="download-card enhanced-download">
-            <div className="download-info">
-              <h4>Enhancement Complete!</h4>
-              <p><strong>File:</strong> {enhancedDownloadData.filename}</p>
-              <p><strong>Size:</strong> {enhancedDownloadData.size} KB</p>
-            </div>
-            <button 
-              onClick={() => handleDownload(enhancedDownloadData)}
-              className="download-btn enhanced-download-btn"
-            >
-              <Download size={20} />
-              Download Enhanced Site
-            </button>
-          </div>
-        </div>
-      )}
+     
     </div>
 
     {/* Live Log Window */}
@@ -474,15 +475,35 @@ export default function App() {
     "w3schools.com",
     "geeksforgeeks.org"
   ];
-   useEffect(() => {
-    if (showLogWindow && logContentRef.current) {
-      const element = logContentRef.current;
-      element.scrollTo({
-        top: element.scrollHeight,
-        behavior: 'smooth'
-      });
-    }
-  }, [serverLogs, showLogWindow]);
+  useEffect(() => {
+  if (showLogWindow && logContentRef.current) {
+    const el = logContentRef.current;
+
+    // Ensure scroll happens after DOM paints new log
+    requestAnimationFrame(() => {
+      el.scrollTop = el.scrollHeight;
+    });
+  }
+}, [serverLogs, showLogWindow]);
+
+
+useEffect(() => {
+  const successLog = "✅ Enhancement completed successfully!";
+  
+  if (serverLogs.some(log => log.message.includes(successLog))) {
+    const timer = setTimeout(() => {
+      setShowLogWindow(false);   // close popup after 4s
+    }, 4000);
+
+    return () => clearTimeout(timer); // cleanup
+  }
+}, [serverLogs]);
+
+useEffect(() => {
+  if (enhancedError || error) {
+    setShowLogWindow(false);
+  }
+}, [enhancedError, error]);
 
   // WebSocket connection setup
   useEffect(() => {
@@ -807,6 +828,7 @@ export default function App() {
             showLogWindow={showLogWindow}
             closeLogWindow={closeLogWindow}
             serverLogs={serverLogs}
+            logContentRef={logContentRef}
           />
         )}
       </div>

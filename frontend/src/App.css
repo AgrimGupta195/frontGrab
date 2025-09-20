@@ -272,6 +272,7 @@
           overflow-y: auto;
           font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
           font-size: 13px;
+          max-height: 80vh;
           line-height: 1.4;
           background: #181825;
         }
