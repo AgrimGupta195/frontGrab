@@ -726,6 +726,7 @@
           font-size: 0.875rem;
           display: flex;
           align-items: center;
+          margin-bottom: 1.1rem;
           gap: 8px;
         }
 
