@@ -6,8 +6,62 @@ It has two parts:
 2. **Frontend** – React + Tailwind + WebSocket logging  
 
 ---
+📦 Packages Used
+🔹 Backend
 
+puppeteer-extra
+ → Browser automation for scraping.
 
+puppeteer-extra-plugin-stealth
+ → Avoids bot detection while scraping.
+
+@sparticuz/chromium
+ → Chromium binary for serverless environments.
+
+cheerio
+ → jQuery-like HTML parser to manipulate DOM.
+
+fs-extra
+ → File system utilities (copy, remove, ensureDir).
+
+path
+ → Handle filesystem paths.
+
+url
+ → Parse and resolve URLs.
+
+chalk
+ → Colored console logs.
+
+archiver
+ → Zip project folders before download.
+
+express
+ → REST API backend server.
+
+cors
+ → Enable CORS for frontend ↔ backend communication.
+
+dotenv
+ → Manage environment variables (.env).
+
+ws
+ → WebSocket server for live logs.
+
+os
+ → Manage temp directories and OS info.
+
+🔹 Frontend
+
+react
+ → UI framework.
+
+react-dom
+ → React rendering for DOM.
+
+vite
+ → Fast frontend build tool.
+---
 🚀 API Endpoints
 1️⃣ Clone a Website
 POST /clone
@@ -52,13 +106,3 @@ Other Tools: fs-extra, chalk, path
 ✅ Serverless-friendly (temp dirs, cleanup after request)
 
 ---
-
-⚡ Do you also want me to add **badges (like Node.js, React, Puppeteer)** at the top of the README to make it look more professional on GitHub?
-
-
-
-
-
-
-
-Ask ChatGPT
