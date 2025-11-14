@@ -6,11 +6,7 @@ import {
 } from "lucide-react";
 import "./App.css";
 
-// ##########################################################################
-// ## Component Definitions (Moved Outside of App)
-// ##########################################################################
 
-// ## Home Page Component ##
 const HomePage = ({ navigateTo, defaultWebsites, setKeyword, copyToClipboard }) => (
   <>
     <header className="header skinify-header">
@@ -22,8 +18,6 @@ const HomePage = ({ navigateTo, defaultWebsites, setKeyword, copyToClipboard }) 
       </div>
       <p className="subtitle">Transform your web development workflow</p>
     </header>
-
-    {/* Feature Selection */}
     <section className="feature-selection">
       <h2 className="feature-title">Choose Your Development Mode</h2>
       <div className="feature-grid">
@@ -134,7 +128,6 @@ const HomePage = ({ navigateTo, defaultWebsites, setKeyword, copyToClipboard }) 
   </>
 );
 
-// ## Clone Page Component ##
 const ClonePage = ({ 
   navigateTo, keywordInputRef, keyword, setKeyword, handleKeyPress, loading, 
   handleScrape, error, success, downloadData, handleDownload, defaultWebsites, 
@@ -270,8 +263,6 @@ const ClonePage = ({
     </section>
   </>
 );
-
-// ## Enhance Page Component ##
 const EnhancePage = ({
   navigateTo, userSiteInputRef, userSite, setUserSite, inspirationSites,
   updateInspirationSite, removeInspirationSite, addInspirationSite,
@@ -393,8 +384,6 @@ const EnhancePage = ({
 
      
     </div>
-
-    {/* Live Log Window */}
     {showLogWindow && (
       <div className="log-overlay">
         <div className="log-window">
@@ -427,21 +416,14 @@ const EnhancePage = ({
     )}
   </>
 );
-
-// ##########################################################################
-// ## Main App Component
-// ##########################################################################
 export default function App() {
-  const [currentPage, setCurrentPage] = useState('home'); // 'home', 'clone', 'enhance'
-  
-  // Clone page states
+  const [currentPage, setCurrentPage] = useState('home');
   const [keyword, setKeyword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [downloadData, setDownloadData] = useState(null);
   
-  // Enhanced page states
   const [userSite, setUserSite] = useState("");
   const [inspirationSites, setInspirationSites] = useState([""]);
   const [enhancementQuery, setEnhancementQuery] = useState("");
@@ -450,19 +432,17 @@ export default function App() {
   const [enhancedSuccess, setEnhancedSuccess] = useState("");
   const [enhancedDownloadData, setEnhancedDownloadData] = useState(null);
   
-  // Live server log states
   const [showLogWindow, setShowLogWindow] = useState(false);
   const [serverLogs, setServerLogs] = useState([]);
   const [wsConnection, setWsConnection] = useState(null);
 
-  // Refs for input elements to maintain focus
   const keywordInputRef = useRef(null);
   const userSiteInputRef = useRef(null);
   const enhancementQueryRef = useRef(null);
     const logContentRef = useRef(null);
 
 
-  const BACKEND_URL = "https://frontgrab.onrender.com"; // Updated to match your backend port
+  const BACKEND_URL = "https://frontgrab.onrender.com"; 
   const WS_URL = "wss://frontgrab.onrender.com";
 
   const defaultWebsites = [
@@ -479,8 +459,6 @@ export default function App() {
   useEffect(() => {
   if (showLogWindow && logContentRef.current) {
     const el = logContentRef.current;
-
-    // Ensure scroll happens after DOM paints new log
     requestAnimationFrame(() => {
       el.scrollTop = el.scrollHeight;
     });
@@ -493,10 +471,10 @@ useEffect(() => {
   
   if (serverLogs.some(log => log.message.includes(successLog))) {
     const timer = setTimeout(() => {
-      setShowLogWindow(false);   // close popup after 4s
+      setShowLogWindow(false);   
     }, 4000);
 
-    return () => clearTimeout(timer); // cleanup
+    return () => clearTimeout(timer); 
   }
 }, [serverLogs]);
 
@@ -549,9 +527,7 @@ useEffect(() => {
         wsConnection.close();
       }
     };
-  }, [showLogWindow, wsConnection, WS_URL]); // Added dependencies for correctness
-
-  // Clone functionality - Updated to use real backend
+  }, [showLogWindow, wsConnection, WS_URL]);
   const handleScrape = async () => {
     if (!keyword.trim()) return setError("Please enter a keyword or URL!");
 
@@ -607,7 +583,6 @@ useEffect(() => {
     }
   };
 
-  // Enhanced functionality - Updated to use real backend
   const handleEnhancedSite = async () => {
     if (!userSite.trim()) return setEnhancedError("Please enter your website URL!");
     if (!enhancementQuery.trim()) return setEnhancedError("Please describe what you want to enhance!");
@@ -723,7 +698,6 @@ useEffect(() => {
     }
   };
 
-  // Enhanced page helper functions
   const addInspirationSite = () => {
     setInspirationSites([...inspirationSites, ""]);
   };
